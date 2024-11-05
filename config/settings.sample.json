@@ -1,0 +1,41 @@
+{
+    "databases": [
+        {
+            "name": "database_name",
+            "user": "database_user",
+            "password": "database_password",
+            "host": "database_host",
+            "port": "database_port",
+            "type": "database_type"
+        },
+        {
+            "name": "database_name",
+            "user": "database_user",
+            "password": "database_password",
+            "host": "database_host",
+            "port": "database_port",
+            "type": "database_type",
+            "ssh": {
+                "host": "ssh_host",
+                "user": "ssh_user",
+                "port": "ssh_port",
+                "identity_file": "path/to/identity_file"
+            }
+        }
+    ],
+    "repos": [
+        {
+            "profile": "profile_name",
+            "repositories": [
+                "git@github.com:profile_name/repository_name.git"
+            ]
+        }
+    ],
+    "storage": {
+        "bucket_name": "storage_bucket_name",
+        "region": "storage_region",
+        "endpoint_url": "storage_endpoint_url",
+        "access_key": "storage_access_key",
+        "secret_key": "storage_secret_key"
+    }
+}

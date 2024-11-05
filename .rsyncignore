@@ -1,0 +1,15 @@
+backups/*
+config/*
+logs/*
+venv/*
+__pycache__/
+
+.git
+.DS_Store
+.rsyncignore
+.env
+.env.sample
+.gitignore
+README.md
+deploy.sh
+todo.md
