@@ -17,6 +17,9 @@ rsync $RSYNC_OPTIONS -e "ssh -i $SSH_KEY_PATH" . $SERVER_USER@$SERVER_IP:$DEST_D
 # Enviar o arquivo settings.prod.json para o servidor
 rsync -avzh -e "ssh -i $SSH_KEY_PATH" ./config/settings.prod.json $SERVER_USER@$SERVER_IP:$DEST_DIR/config/settings.json
 
+# Criar ou atualizar o arquivo .env no servidor
+ssh -i $SSH_KEY_PATH $SERVER_USER@$SERVER_IP "echo 'ENV=production' > $DEST_DIR/.env"
+
 # Instalar python3-venv se não estiver instalado e criar o ambiente virtual
 ssh -i $SSH_KEY_PATH $SERVER_USER@$SERVER_IP "cd $DEST_DIR && \
 if ! dpkg -l | grep -q python3-venv; then \
@@ -25,7 +28,7 @@ fi && \
 if [ ! -d venv ]; then \
     python3 -m venv venv; \
 fi && \
-cd $DEST_DIR; source venv/bin/activate && pip install -r requirements.txt"
+cd $DEST_DIR; ./venv/bin/pip install -r requirements.txt"
 
 # Final message
 echo "Deploy concluído com sucesso!"
