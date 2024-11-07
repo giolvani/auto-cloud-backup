@@ -1,26 +1,28 @@
 from datetime import datetime
+from logger import log_message
 import backup_codebase
 import backup_database
 
-LOG_FILE = "logs/backup.log"
-
-
-def log_message(message):
-    with open(LOG_FILE, "a") as log_file:
-        log_file.write(f"{datetime.now()}: {message}\n")
-
 
 def run_backup():
-    timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    log_message("===> Início do backup. <===")
+    try:
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        log_message("===> Início do backup. <===")
 
-    # Executar backup do codebase
-    backup_codebase.backup_codebases(timestamp)
+        try:
+            backup_codebase.backup_codebases(timestamp)
+        except Exception as e:
+            log_message(f"Erro ao fazer backup dos repositórios: {e}")
 
-    # Executar backup do banco de dados
-    backup_database.backup_databases(timestamp)
+        try:
+            backup_database.backup_databases(timestamp)
+        except Exception as e:
+            log_message(f"Erro ao fazer backup dos bancos de dados: {e}")
 
-    log_message("===> Backup finalizado. <===\n")
+        log_message("===> Backup finalizado. <===")
+    except Exception as e:
+        log_message(f"===> Erro geral ao executar backup: {e} <===")
+        raise e
 
 
 if __name__ == "__main__":
