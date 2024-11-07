@@ -5,12 +5,12 @@ import json
 import boto3
 import shutil
 from datetime import datetime
+from logger import log_message
 
 with open("config/settings.json") as config_file:
     config = json.load(config_file)
 
 TEMP_DIR = "./backups/codebase"
-LOG_FILE = "logs/backup.log"
 BUCKET_NAME = config["storage"]["bucket_name"]
 ENDPOINT_URL = config["storage"]["endpoint_url"]
 ACCESS_KEY = config["storage"]["access_key"]
@@ -23,11 +23,6 @@ s3_client = boto3.client(
     aws_access_key_id=ACCESS_KEY,
     aws_secret_access_key=SECRET_KEY,
 )
-
-
-def log_message(message):
-    with open(LOG_FILE, "a") as log_file:
-        log_file.write(f"{datetime.now()}: {message}\n")
 
 
 def backup_repo(repo_url, profile_name, timestamp):
@@ -54,6 +49,10 @@ def backup_repo(repo_url, profile_name, timestamp):
 
 
 def backup_codebases(timestamp):
+    if not config["repos"]:
+        log_message("Nenhum repositório configurado para backup.")
+        return
+
     for profile in config["repos"]:
         log_message(
             f"Iniciando backup dos repositórios do perfil: {profile['profile']}"

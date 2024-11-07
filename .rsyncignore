@@ -11,5 +11,6 @@ __pycache__/
 .env.sample
 .gitignore
 README.md
+LICENSE
 deploy.sh
 todo.md
