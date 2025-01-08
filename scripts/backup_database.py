@@ -4,26 +4,7 @@ import tarfile
 import json
 import boto3
 import shutil
-from datetime import datetime
-from logger import log_message  # Importar a função log_message
-
-with open("config/settings.json") as config_file:
-    config = json.load(config_file)
-
-TEMP_DIR = "./backups/database"
-BUCKET_NAME = config["storage"]["bucket_name"]
-ENDPOINT_URL = config["storage"]["endpoint_url"]
-ACCESS_KEY = config["storage"]["access_key"]
-SECRET_KEY = config["storage"]["secret_key"]
-
-
-s3_client = boto3.client(
-    "s3",
-    endpoint_url=ENDPOINT_URL,
-    aws_access_key_id=ACCESS_KEY,
-    aws_secret_access_key=SECRET_KEY,
-)
-
+from logger import log_message
 
 def create_cnf_file(db_config):
     cnf_content = f"[client]\nuser = {db_config['user']}\npassword = {db_config['password']}\nhost = {db_config['host']}\nport = {db_config['port']}"
@@ -35,7 +16,7 @@ def create_cnf_file(db_config):
     return cnf_path
 
 
-def backup_database(db_config, timestamp):
+def backup_database(db_config, storage_config, temp_dir, timestamp):
     db_name = db_config["name"]
     db_user = db_config["user"]
     db_password = db_config["password"]
@@ -43,10 +24,17 @@ def backup_database(db_config, timestamp):
     db_port = str(db_config["port"])
     db_type = db_config.get("type", "postgres")
 
-    log_message(f"Iniciando backup do banco de dados {db_type} {db_name}...")
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=storage_config["endpoint_url"],
+        aws_access_key_id=storage_config["access_key"],
+        aws_secret_access_key=storage_config["secret_key"],
+    )
 
-    os.makedirs(TEMP_DIR, exist_ok=True)
-    dump_path = os.path.join(TEMP_DIR, f"{db_name}_backup.sql")
+    log_message(f"Initiating backup of {db_type} database {db_name}...")
+
+    os.makedirs(temp_dir, exist_ok=True)
+    dump_path = os.path.join(temp_dir, f"{db_name}_backup.sql")
 
     if db_type == "postgres":
         cnf_path = None
@@ -58,7 +46,7 @@ def backup_database(db_config, timestamp):
         cnf_path = create_cnf_file(db_config)
         dump_command = ["mysqldump", f"--defaults-extra-file={cnf_path}", db_name]
     else:
-        log_message(f"Tipo de banco de dados não suportado: {db_type}")
+        log_message(f"Unsupported database type: {db_type}")
         return
 
     try:
@@ -80,36 +68,38 @@ def backup_database(db_config, timestamp):
         with open(dump_path, "w") as dump_file:
             subprocess.run(dump_command, stdout=dump_file, check=True, shell=shell)
 
-        tar_path = os.path.join(TEMP_DIR, f"{db_name}_backup.tar.gz")
+        tar_path = os.path.join(temp_dir, f"{db_name}_backup.tar.gz")
         with tarfile.open(tar_path, "w:gz") as tar:
             tar.add(dump_path, arcname=os.path.basename(dump_path))
 
         storage_path = f"{timestamp}/database/{db_name}_backup.tar.gz"
         log_message(f"Uploading to path: {storage_path}")
 
-        s3_client.upload_file(Bucket=BUCKET_NAME, Key=storage_path, Filename=tar_path)
-        log_message(f"Backup do banco de dados {db_name} concluído.")
+        s3_client.upload_file(Bucket=storage_config["bucket_name"], Key=storage_path, Filename=tar_path)
+        log_message(f"Backup of database {db_name} completed.")
 
-        shutil.rmtree(TEMP_DIR)
-
+    except subprocess.CalledProcessError as e:
+        log_message(f"Error executing database dump of {db_name}: {e}")
+    except Exception as e:
+        log_message(f"General error in database backup of {db_name}: {e}")
+    finally:
+        shutil.rmtree(temp_dir)
         if cnf_path:
             os.remove(cnf_path)
 
-    except subprocess.CalledProcessError as e:
-        log_message(f"Erro ao executar o dump do banco de dados {db_name}: {e}")
-    except Exception as e:
-        log_message(f"Erro geral no backup do banco de dados {db_name}: {e}")
 
+def backup_databases(config_path, timestamp):
+    with open(config_path) as config_file:
+        config = json.load(config_file)
 
-def backup_databases(timestamp):
     if not config["databases"]:
-        log_message("Nenhum banco de dados configurado para backup.")
+        log_message("No databases configured for backup.")
         return
 
     for db in config["databases"]:
-        backup_database(db, timestamp)
+        backup_database(db, config["storage"], "./backups/database", timestamp)
 
 
 if __name__ == "__main__":
-    timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    backup_databases(timestamp)
+    print("You shouldn't run this file directly.")
+    pass

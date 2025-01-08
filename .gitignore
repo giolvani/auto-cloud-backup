@@ -1,8 +1,12 @@
 .DS_Store
 
 backups/
-config/*
-!config/settings.sample.json
+backup_storage/
+#config/*
+#!config/settings.sample.json
+#config/settings.prod.json
+#config/clients/*
+
 venv/
 scripts/__pycache__/
 .env
